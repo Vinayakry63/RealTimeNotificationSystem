@@ -2,23 +2,6 @@
 
 A full-stack real-time notification platform built with Node.js, Socket.IO, PostgreSQL, Redis, and React.
 
-## Architecture Overview
-
-```
-┌─────────────────────────────────────────────────────────────────┐
-│                        FRONTEND (React)                          │
-│  AuthContext → useSocket → NotificationContext → UI Components   │
-└────────────────────────────┬────────────────────────────────────┘
-                             │ HTTP (REST) + WebSocket
-┌────────────────────────────▼────────────────────────────────────┐
-│                    BACKEND (Node.js + Express)                   │
-│  Routes → Middleware → Controllers → Services → Prisma → PostgreSQL  │
-│                         └── Socket.IO ──┘                        │
-│                              ↕ Pub/Sub                           │
-│                           [Redis]                                │
-└─────────────────────────────────────────────────────────────────┘
-```
-
 ## Tech Stack
 
 | Layer | Technology |
