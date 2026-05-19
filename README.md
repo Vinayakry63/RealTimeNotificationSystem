@@ -1,4 +1,4 @@
-# NotifyPro — Production Real-Time Notification Platform
+#  Real-Time Notification Platform
 
 A full-stack real-time notification platform built with Node.js, Socket.IO, PostgreSQL, Redis, and React.
 
