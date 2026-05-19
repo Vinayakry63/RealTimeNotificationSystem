@@ -1,0 +1,103 @@
+// ============================================================
+// PRISMA SCHEMA - Database modeling layer
+// ============================================================
+// Prisma acts as an ORM (Object Relational Mapper).
+// It translates between TypeScript/JS objects and SQL tables.
+//
+// Industry pattern: Define schema once → generate SQL + type-safe client
+// This prevents SQL injection at ORM level and gives you autocomplete.
+// ============================================================
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+// ============================================================
+// USER MODEL
+//
+// Role-based access is fundamental in notification systems:
+// - Users receive notifications
+// - Admins create and send notifications
+//
+// Why enum for role?
+// Enums enforce valid values at the database level.
+// You can't accidentally insert "superadmin" or misspell "Admin".
+// ============================================================
+
+enum Role {
+  USER
+  ADMIN
+}
+
+model User {
+  id        Int      @id @default(autoincrement())
+  name      String
+  email     String   @unique
+  password  String
+  role      Role     @default(USER)
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  // Relation: One user can have many notifications
+  // Prisma will handle JOIN queries automatically
+  notifications Notification[]
+
+  // Index on email for fast login lookups.
+  // Without index: O(n) full table scan on every login.
+  // With index: O(log n) B-tree search.
+  // Instagram has billions of users — indexes are not optional.
+  @@index([email])
+  @@map("users")
+}
+
+// ============================================================
+// NOTIFICATION MODEL
+//
+// Why store notifications in PostgreSQL?
+// 1. Persistence across server restarts
+// 2. User can see notification history
+// 3. Audit trail for business analytics
+// 4. Support marking as read/unread
+//
+// LinkedIn keeps notifications for 90 days.
+// Instagram shows last 100 notifications.
+// Swiggy shows order notifications until delivery is complete.
+// ============================================================
+
+enum NotificationType {
+  PAYMENT_SUCCESS
+  ORDER_PLACED
+  ORDER_PACKED
+  ORDER_SHIPPED
+  ORDER_DELIVERED
+  PROMO_OFFER
+  SYSTEM_ALERT
+  GENERAL
+}
+
+model Notification {
+  id        Int              @id @default(autoincrement())
+  userId    Int
+  type      NotificationType
+  message   String
+  isRead    Boolean          @default(false)
+  metadata  Json?            // Flexible field for extra data (order ID, amount, etc.)
+  createdAt DateTime         @default(now())
+  updatedAt DateTime         @updatedAt
+
+  // Foreign key relationship
+  // If user is deleted, all their notifications are deleted too (CASCADE)
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  // Composite index: userId + isRead
+  // Why? Most queries are: "give me all UNREAD notifications for user 123"
+  // This index makes that query instant even with millions of rows.
+  @@index([userId, isRead])
+  @@index([userId, createdAt])
+  @@map("notifications")
+}
